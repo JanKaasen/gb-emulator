@@ -44,37 +44,27 @@ void memory_cleanup(memory_system_t *mem_sys)
 	printf("Memory cleaned up successfully\n");
 }
 
-static int memory_calculate_offset(address addr)
+static byte *memory_get_pointer(memory_system_t *mem_sys, address addr)
 {
-	if (addr > 0xFFFF) {
-		return -1;
-	}
-
 	if (addr >= ROM_START && addr <= ROM_END) {
-		return addr - ROM_START;
+		return &mem_sys->rom[addr - ROM_START];
 	}
-
 	if (addr >= VRAM_START && addr <= VRAM_END) {
-		return addr - VRAM_START;
+		return &mem_sys->vram[addr - VRAM_START];
 	}
-
 	if (addr >= WRAM_START && addr <= WRAM_END) {
-		return addr - WRAM_START;
+		return &mem_sys->wram[addr - WRAM_START];
 	}
-
 	if (addr >= OAM_START && addr <= OAM_END) {
-		return addr - OAM_START;
+		return &mem_sys->oam[addr - OAM_START];
 	}
-
 	if (addr >= IO_REGISTERS_START && addr <= IO_REGISTERS_END) {
-		return addr - IO_REGISTERS_START;
+		return &mem_sys->io_registers[addr - IO_REGISTERS_START];
 	}
-
 	if (addr >= HRAM_START && addr <= HRAM_END) {
-		return addr - HRAM_START;
+		return &mem_sys->hram[addr - HRAM_START];
 	}
-
-	return -1;
+	return NULL;
 }
 
 byte memory_read_byte(memory_system_t *mem_sys, address addr)
@@ -93,27 +83,8 @@ byte memory_read_byte(memory_system_t *mem_sys, address addr)
 		return 0xFF;
 	}
 
-	int offset = memory_calculate_offset(addr);
-	if (offset < 0) {
-		return 0xFF;
-	}
-
-	byte result = 0xFF;
-	if (addr >= ROM_START && addr <= ROM_END) {
-		result = mem_sys->rom[offset];
-	} else if (addr >= VRAM_START && addr <= VRAM_END) {
-		result = mem_sys->vram[offset];
-	} else if (addr >= WRAM_START && addr <= WRAM_END) {
-		result = mem_sys->wram[offset];
-	} else if (addr >= OAM_START && addr <= OAM_END) {
-		result = mem_sys->oam[offset];
-	} else if (addr >= IO_REGISTERS_START && addr <= IO_REGISTERS_END) {
-		result = mem_sys->io_registers[offset];
-	} else if (addr >= HRAM_START && addr <= HRAM_END) {
-		result = mem_sys->hram[offset];
-	}
-
-	return result;
+	byte *ptr = memory_get_pointer(mem_sys, addr);
+	return ptr ? *ptr : 0xFF;
 }
 
 void memory_write_byte(memory_system_t *mem_sys, address addr, byte value)
@@ -130,26 +101,12 @@ void memory_write_byte(memory_system_t *mem_sys, address addr, byte value)
 		return;
 	}
 
-	int offset = memory_calculate_offset(addr);
-	if (offset < 0) {
+	if (addr >= ROM_START && addr <= ROM_END)
 		return;
-	}
 
-	if (addr >= ROM_START && addr <= ROM_END) {
-		printf("ERROR: tried writing to ROM address\n");
-		return;
-	}
-
-	if (addr >= VRAM_START && addr <= VRAM_END) {
-		mem_sys->vram[offset] = value;
-	} else if (addr >= WRAM_START && addr <= WRAM_END) {
-		mem_sys->wram[offset] = value;
-	} else if (addr >= OAM_START && addr <= OAM_END) {
-		mem_sys->oam[offset] = value;
-	} else if (addr >= IO_REGISTERS_START && addr <= IO_REGISTERS_END) {
-		mem_sys->io_registers[offset] = value;
-	} else if (addr >= HRAM_START && addr <= HRAM_END) {
-		mem_sys->hram[offset] = value;
+	byte *ptr = memory_get_pointer(mem_sys, addr);
+	if (ptr) {
+		*ptr = value;
 	}
 }
 
@@ -172,23 +129,11 @@ void memory_write_word(memory_system_t *mem_sys, address addr, word value)
 
 bool memory_is_valid_address(address addr)
 {
-	if (addr > 0xFFFF) {
+	if (addr >= PROHIBITED_START && addr <= PROHIBITED_END) {
 		return false;
 	}
 
-	if (addr >= ROM_START && addr <= ROM_END) {
-		return true;
-	}
-
-	if (addr >= VRAM_START && addr <= VRAM_END) {
-		return true;
-	}
-
-	if (addr >= WRAM_START && addr <= WRAM_END) {
-		return true;
-	}
-
-	return false;
+	return addr <= 0xFFFF;
 }
 
 const char *memory_get_region_name(address addr)
@@ -196,22 +141,32 @@ const char *memory_get_region_name(address addr)
 	if (addr >= ROM_START && addr <= ROM_END) {
 		return "ROM";
 	}
-
 	if (addr >= VRAM_START && addr <= VRAM_END) {
 		return "VRAM";
 	}
-
 	if (addr >= WRAM_START && addr <= WRAM_END) {
 		return "WRAM";
 	}
-
-	if (addr > 0xFFFF) {
-		return "Invalid";
+	if (addr >= ECHO_RAM_START && addr <= ECHO_RAM_END) {
+		return "Echo RAM";
 	}
-
-	return "Unmapped";
+	if (addr >= OAM_START && addr <= OAM_END) {
+		return "OAM";
+	}
+	if (addr >= PROHIBITED_START && addr <= PROHIBITED_END) {
+		return "Prohibited";
+	}
+	if (addr >= IO_REGISTERS_START && addr <= IO_REGISTERS_END) {
+		return "IO";
+	}
+	if (addr >= HRAM_START && addr <= HRAM_END) {
+		return "HRAM";
+	}
+	if (addr == INTERRUPT_ENABLE_REGISTER) {
+		return "IE";
+	}
+	return "Invalid";
 }
-
 void memory_dump_region(memory_system_t *mem_sys, address start, address end)
 {
 	if (mem_sys == NULL) {
@@ -264,11 +219,11 @@ void memory_dump_region(memory_system_t *mem_sys, address start, address end)
 }
 
 /**
- * @brief [TODO:description]
+ * @brief loads rom to ROM addresses in memory
  *
- * @param mem_sys [TODO:parameter]
- * @param filename [TODO:parameter]
- * @return [TODO:return]
+ * @param mem_sys memory system to load rom into
+ * @param filename file name for rom
+ * @return true if rom loaded to memory else false
  */
 bool memory_load_rom(memory_system_t *mem_sys, const char *filename)
 {

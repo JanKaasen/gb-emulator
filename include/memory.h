@@ -27,8 +27,7 @@
 #define ROM_SIZE (ROM_END - ROM_START + 1)
 #define VRAM_SIZE (VRAM_END - VRAM_START + 1)
 #define WRAM_SIZE (WRAM_END - WRAM_START + 1)
-#define ECHO_RAM_SIZE (ECHO_RAM_END - ECHO_RAM_START + 1)
-#define PROHIBITED_SIZE
+#define PROHIBITED_SIZE (PROHIBITED_END - PROHIBITED_START + 1)
 #define OAM_SIZE (OAM_END - OAM_START + 1)
 #define IO_REGISTERS_SIZE (IO_REGISTERS_END - IO_REGISTERS_START + 1)
 #define HRAM_SIZE (HRAM_END - HRAM_START + 1)
@@ -39,7 +38,6 @@ struct memory_system {
 	byte rom[ROM_SIZE];
 	byte vram[VRAM_SIZE];
 	byte wram[WRAM_SIZE];
-	byte echo[ECHO_RAM_SIZE];
 	byte oam[OAM_SIZE];
 	byte io_registers[IO_REGISTERS_SIZE];
 	byte hram[HRAM_SIZE];
