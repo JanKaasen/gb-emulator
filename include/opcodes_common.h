@@ -20,6 +20,7 @@
 
 #define READ_BYTE(addr) memory_read_byte(cpu->memory, (addr))
 #define WRITE_BYTE(addr, val) memory_write_byte(cpu->memory, (addr), (val))
+#define WRITE_WORD(addr, val) memory_write_word(cpu->memory, (addr), (val))
 
 #define GET_BC(cpu) ((cpu->B << 8) | cpu->C)
 #define GET_DE(cpu) ((cpu->D << 8) | cpu->E)
@@ -52,5 +53,6 @@ void or_helper(cpu_t *cpu, byte val);
 void xor_helper(cpu_t *cpu, byte val);
 void compare_helper(cpu_t *cpu, byte val);
 void word_add_helper(cpu_t *cpu, word val);
+word read_n16(cpu_t *cpu);
 
 #endif

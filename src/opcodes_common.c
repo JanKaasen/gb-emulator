@@ -121,3 +121,10 @@ void compare_helper(cpu_t *cpu, byte val)
 	SET_FLAG_VALUE(cpu, FLAG_Z, cpu->A - val == 0);
 	SET_FLAG(cpu, FLAG_N);
 }
+
+word read_n16(cpu_t *cpu)
+{
+	byte low_byte = READ_BYTE(cpu->PC++);
+	byte high_byte = READ_BYTE(cpu->PC++);
+	return (high_byte << 8) | low_byte;
+}
