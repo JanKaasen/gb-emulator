@@ -1,5 +1,6 @@
 #include "../include/opcodes.h"
 #include "../include/opcodes_common.h"
+#include <stdint.h>
 
 int nop(cpu_t *cpu)
 {
@@ -92,6 +93,8 @@ int ld_c_n8(cpu_t *cpu)
 {
 	cpu->C = READ_BYTE(cpu->PC++);
 	return 8;
+	cpu->C = READ_BYTE(cpu->PC++);
+	return 8;
 }
 
 // TODO: Implement rrca
@@ -103,7 +106,6 @@ int rrca(cpu_t *cpu)
 // TODO: Implement stop
 int stop(cpu_t *cpu)
 {
-
 	return 4;
 }
 
@@ -112,6 +114,7 @@ int ld_de_n16(cpu_t *cpu)
 	SET_DE(cpu, read_n16(cpu));
 	return 12;
 }
+
 int ld_de_a(cpu_t *cpu)
 {
 	WRITE_BYTE(GET_DE(cpu), cpu->A);
@@ -125,16 +128,19 @@ int inc_de(cpu_t *cpu)
 	}
 	return 8;
 }
+
 int inc_d(cpu_t *cpu)
 {
 	inc_helper(cpu, &cpu->D);
 	return 4;
 }
+
 int dec_d(cpu_t *cpu)
 {
 	dec_helper(cpu, &cpu->D);
 	return 4;
 }
+
 int ld_d_n8(cpu_t *cpu)
 {
 	cpu->D = READ_BYTE(cpu->PC++);
@@ -165,116 +171,277 @@ int ld_a_de(cpu_t *cpu)
 	cpu->A = READ_BYTE(GET_DE(cpu));
 	return 8;
 }
+
 int dec_de(cpu_t *cpu)
 {
+	word val = GET_DE(cpu);
+	val--;
+	SET_DE(cpu, val);
+	return 8;
 }
+
 int inc_e(cpu_t *cpu)
 {
+	inc_helper(cpu, &cpu->E);
+	return 4;
 }
+
 int dec_e(cpu_t *cpu)
 {
+	dec_helper(cpu, &cpu->E);
+	return 4;
 }
+
 int ld_e_n8(cpu_t *cpu)
 {
+	cpu->E = READ_BYTE(cpu->PC++);
+	return 8;
 }
+
+// TODO: implement rra
 int rra(cpu_t *cpu)
 {
+	return 4;
 }
+
 int jr_nz_e8(cpu_t *cpu)
 {
+	int8_t offset = READ_BYTE(cpu->PC++);
+	if (!GET_FLAG(cpu, FLAG_Z)) {
+		cpu->PC += offset;
+		return 12;
+	} else {
+		return 8;
+	}
 }
+
 int ld_hl_n16(cpu_t *cpu)
 {
+	SET_HL(cpu, read_n16(cpu));
+	return 12;
 }
+
 int ld_hli_a(cpu_t *cpu)
 {
+	address addr = GET_HL(cpu);
+	WRITE_BYTE(addr, cpu->A);
+	addr++;
+	SET_HL(cpu, addr);
+	return 8;
 }
+
 int inc_hl(cpu_t *cpu)
 {
+	word val = GET_HL(cpu);
+	val--;
+	SET_HL(cpu, val);
+	return 8;
 }
+
 int inc_h(cpu_t *cpu)
 {
+	inc_helper(cpu, &cpu->H);
+	return 4;
 }
+
 int dec_h(cpu_t *cpu)
 {
+	dec_helper(cpu, &cpu->H);
+	return 4;
 }
+
 int ld_h_n8(cpu_t *cpu)
 {
+	cpu->H = READ_BYTE(cpu->PC++);
+	return 8;
 }
+
 int daa(cpu_t *cpu)
 {
+
+	return 4;
 }
+
 int jr_z_e8(cpu_t *cpu)
 {
+	int8_t offset = READ_BYTE(cpu->PC++);
+	if (GET_FLAG(cpu, FLAG_Z)) {
+		cpu->PC += offset;
+		return 12;
+	} else {
+		return 8;
+	}
 }
 int add_hl_hl(cpu_t *cpu)
 {
+	word val = GET_HL(cpu);
+	word_add_helper(cpu, val);
+	return 8;
 }
+
 int ld_a_hli(cpu_t *cpu)
 {
+	address HL_value = GET_HL(cpu);
+	cpu->A = READ_BYTE(HL_value);
+	SET_HL(cpu, HL_value + 1);
+	return 8;
 }
+
 int dec_hl(cpu_t *cpu)
 {
+	word val = GET_HL(cpu);
+	val--;
+	SET_HL(cpu, val);
+	return 8;
 }
+
 int inc_l(cpu_t *cpu)
 {
+	inc_helper(cpu, &cpu->L);
+	return 4;
 }
+
 int dec_l(cpu_t *cpu)
 {
+	dec_helper(cpu, &cpu->L);
+	return 4;
 }
+
 int ld_l_n8(cpu_t *cpu)
 {
+	cpu->L = READ_BYTE(cpu->PC++);
+	return 8;
 }
+
 int cpl(cpu_t *cpu)
 {
+	cpu->A = ~cpu->A;
+	SET_FLAG_VALUE(cpu, FLAG_N, 1);
+	SET_FLAG_VALUE(cpu, FLAG_H, 1);
+	return 4;
 }
+
 int jr_nc_e8(cpu_t *cpu)
 {
+	int8_t offset = READ_BYTE(cpu->PC);
+	cpu->PC++;
+	if (GET_FLAG(cpu, FLAG_C)) {
+		return 8;
+	} else {
+		cpu->PC += offset;
+		return 12;
+	}
 }
+
 int ld_sp_n16(cpu_t *cpu)
 {
+	WRITE_WORD(cpu->SP, read_n16(cpu));
+	return 12;
 }
+
 int ld_hld_a(cpu_t *cpu)
 {
+	byte HL_value = GET_HL(cpu);
+	WRITE_WORD(cpu->A, GET_HL(cpu));
+	SET_HL(cpu, HL_value - 1);
+	return 8;
 }
+
 int inc_sp(cpu_t *cpu)
 {
+	cpu->SP++;
+	return 8;
 }
+
 int inc_hl_mem(cpu_t *cpu)
 {
+	address addr = GET_HL(cpu);
+	byte val = READ_BYTE(addr);
+	inc_helper(cpu, &val);
+	WRITE_BYTE(addr, val);
+	return 12;
 }
+
 int dec_hl_mem(cpu_t *cpu)
 {
+	address addr = GET_HL(cpu);
+	byte val = READ_BYTE(addr);
+	dec_helper(cpu, &val);
+	WRITE_BYTE(addr, val);
+	return 12;
 }
+
 int ld_hl_n8(cpu_t *cpu)
 {
+	byte val = READ_BYTE(cpu->PC++);
+	WRITE_BYTE(GET_HL(cpu), val);
+	return 12;
 }
+
 int scf(cpu_t *cpu)
 {
+	CLEAR_FLAG(cpu, FLAG_H);
+	CLEAR_FLAG(cpu, FLAG_N);
+	SET_FLAG(cpu, FLAG_C);
+	return 4;
 }
+
 int jr_c_e8(cpu_t *cpu)
 {
+	int8_t offset = READ_BYTE(cpu->PC);
+	cpu->PC++;
+	if (GET_FLAG(cpu, FLAG_C)) {
+		cpu->PC += offset;
+		return 12;
+	} else {
+		return 8;
+	}
 }
+
 int add_hl_sp(cpu_t *cpu)
 {
+	word_add_helper(cpu, cpu->SP);
+	return 8;
 }
+
 int ld_a_hld(cpu_t *cpu)
 {
+	address HL_value = GET_HL(cpu);
+	cpu->A = READ_BYTE(HL_value);
+	SET_HL(cpu, HL_value - 1);
+	return 8;
 }
+
 int dec_sp(cpu_t *cpu)
 {
+	cpu->SP--;
+	return 8;
 }
+
 int inc_a(cpu_t *cpu)
 {
+	inc_helper(cpu, &cpu->A);
+	return 4;
 }
+
 int dec_a(cpu_t *cpu)
 {
+	dec_helper(cpu, &cpu->A);
+	return 4;
 }
+
 int ld_a_n8(cpu_t *cpu)
 {
+	cpu->A = READ_BYTE(cpu->PC++);
+	return 8;
 }
+
 int ccf(cpu_t *cpu)
 {
+	CLEAR_FLAG(cpu, FLAG_N);
+	CLEAR_FLAG(cpu, FLAG_H);
+	SET_FLAG_VALUE(cpu, FLAG_C, !GET_FLAG(cpu, FLAG_C));
+	return 4;
 }
 
 void opcodes_00_3F_init(void)
